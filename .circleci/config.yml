@@ -51,7 +51,7 @@ workflows:
               only: /^\d+\.\d+\.\d+$/
       - publish-latest:
           context:
-            - kveer-dockerhub
+            - gh-classic
           requires:
             - build
           filters:
