@@ -3,7 +3,7 @@ version: 2.1
 executors:
   docker-publisher:
     environment:
-      IMAGE_NAME: ghcr.io/LordVeovis/vlmcsd
+      IMAGE_NAME: ghcr.io/lordveovis/vlmcsd
     docker:
       - image: cimg/base:2024.02
 
