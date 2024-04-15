@@ -38,7 +38,7 @@ jobs:
       - run:
           name: Publish Docker Image to Docker Hub
           command: |
-            echo "$GH_PASS" | docker login -u "$GH_USERNAME" --password-stdin
+            echo "$GH_PASS" | docker login ghcr.io -u "$GH_USERNAME" --password-stdin
             docker push $IMAGE_NAME:${CIRCLE_TAG:-latest}
 workflows:
   main:
