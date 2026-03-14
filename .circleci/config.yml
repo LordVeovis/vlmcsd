@@ -49,7 +49,7 @@ jobs:
           command: docker push $IMAGE_NAME:${CIRCLE_TAG:-latest}-arm64
 
   build-amd64:
-    resource_class: arm.medium
+    resource_class: medium
     executor: docker-publisher
     steps:
       - checkout
