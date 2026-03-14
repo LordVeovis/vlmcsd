@@ -7,6 +7,15 @@ executors:
     docker:
       - image: cimg/base:2024.02
 
+commands:
+  login-ghcr:
+    description: Login to GHCR
+    steps:
+      - run:
+          name: Login to GHCR.io
+          command: |
+            [ -z "$GH_USERNAME" ] && [ -z "$GH_PASS" ] || exit 2
+            echo "$GH_PASS" | docker login ghcr.io -u "$GH_USERNAME" --password-stdin
 jobs:
   build-arm64:
     resource_class: arm.medium
@@ -34,11 +43,10 @@ jobs:
       - run:
           name: Load archived Docker image
           command: docker load -i /tmp/workspace/image.tar
+      - login-ghcr
       - run:
           name: Publish Docker Image to Docker Hub
-          command: |
-            echo "$GH_PASS" | docker login ghcr.io -u "$GH_USERNAME" --password-stdin
-            docker push $IMAGE_NAME:${CIRCLE_TAG:-latest}-arm64
+          command: docker push $IMAGE_NAME:${CIRCLE_TAG:-latest}-arm64
 
   build-amd64:
     resource_class: arm.medium
@@ -66,11 +74,10 @@ jobs:
       - run:
           name: Load archived Docker image
           command: docker load -i /tmp/workspace/image.tar
+      - login-ghcr
       - run:
           name: Publish Docker Image to Docker Hub
-          command: |
-            echo "$GH_PASS" | docker login ghcr.io -u "$GH_USERNAME" --password-stdin
-            docker push $IMAGE_NAME:${CIRCLE_TAG:-latest}-amd64
+          command: docker push $IMAGE_NAME:${CIRCLE_TAG:-latest}-amd64
 
   publish-multiarch-image:
     docker:
@@ -78,6 +85,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
+      - login-ghcr
       - run:
           name: Create and push manifest for multiarch
           command: |
@@ -85,7 +93,6 @@ jobs:
             $IMAGE_NAME:${CIRCLE_TAG:-latest} \
             --amend $IMAGE_NAME:${CIRCLE_TAG:-latest}-arm64 \
             --amend $IMAGE_NAME:${CIRCLE_TAG:-latest}-x86
-            echo "$GH_PASS" | docker login ghcr.io -u "$GH_USERNAME" --password-stdin
             docker manifest push $IMAGE_NAME:${CIRCLE_TAG:-latest}
 workflows:
   main:
