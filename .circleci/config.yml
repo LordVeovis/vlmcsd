@@ -14,7 +14,7 @@ commands:
       - run:
           name: Login to GHCR.io
           command: |
-            [ -z "$GH_USERNAME" ] && [ -z "$GH_PASS" ] || exit 2
+            [ -n "$GH_USERNAME" ] && [ -n "$GH_PASS" ] || exit 2
             echo "$GH_PASS" | docker login ghcr.io -u "$GH_USERNAME" --password-stdin
 jobs:
   build-arm64:
