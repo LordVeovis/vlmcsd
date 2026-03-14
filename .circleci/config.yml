@@ -80,10 +80,8 @@ jobs:
           command: docker push $IMAGE_NAME:${CIRCLE_TAG:-latest}-amd64
 
   publish-multiarch-image:
-    docker:
-      - image: docker:latest
+    executor: docker-publisher
     steps:
-      - checkout
       - setup_remote_docker
       - login-ghcr
       - run:
