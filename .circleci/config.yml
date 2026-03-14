@@ -8,9 +8,7 @@ executors:
       - image: cimg/base:2024.02
 
 jobs:
-  build:
-    #machine:
-    #  image: ubuntu-2204:current
+  build-arm64:
     resource_class: arm.medium
     executor: docker-publisher
     steps:
@@ -18,15 +16,16 @@ jobs:
       - setup_remote_docker
       - run:
           name: Build Docker image
-          command: docker build --pull -t $IMAGE_NAME:${CIRCLE_TAG:-latest} .
+          command: docker build --pull -t $IMAGE_NAME:${CIRCLE_TAG:-latest}-arm64 .
       - run:
           name: Archive Docker image
-          command: docker save -o image.tar $IMAGE_NAME:${CIRCLE_TAG:-latest}
+          command: docker save -o image.tar $IMAGE_NAME:${CIRCLE_TAG:-latest}-arm64
       - persist_to_workspace:
           root: .
           paths:
             - ./image.tar
-  publish-latest:
+
+  publish-latest-arm64:
     executor: docker-publisher
     steps:
       - attach_workspace:
@@ -39,24 +38,91 @@ jobs:
           name: Publish Docker Image to Docker Hub
           command: |
             echo "$GH_PASS" | docker login ghcr.io -u "$GH_USERNAME" --password-stdin
-            docker push $IMAGE_NAME:${CIRCLE_TAG:-latest}
+            docker push $IMAGE_NAME:${CIRCLE_TAG:-latest}-arm64
+
+  build-amd64:
+    resource_class: arm.medium
+    executor: docker-publisher
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build Docker image
+          command: docker build --pull -t $IMAGE_NAME:${CIRCLE_TAG:-latest}-amd64 .
+      - run:
+          name: Archive Docker image
+          command: docker save -o image.tar $IMAGE_NAME:${CIRCLE_TAG:-latest}-amd64
+      - persist_to_workspace:
+          root: .
+          paths:
+            - ./image.tar
+
+  publish-latest-amd64:
+    executor: docker-publisher
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup_remote_docker
+      - run:
+          name: Load archived Docker image
+          command: docker load -i /tmp/workspace/image.tar
+      - run:
+          name: Publish Docker Image to Docker Hub
+          command: |
+            echo "$GH_PASS" | docker login ghcr.io -u "$GH_USERNAME" --password-stdin
+            docker push $IMAGE_NAME:${CIRCLE_TAG:-latest}-amd64
+
+  publish-multiarch-image:
+    docker:
+      - image: docker:latest
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Create and push manifest for multiarch
+          command: |
+            docker manifest create \
+            $IMAGE_NAME:${CIRCLE_TAG:-latest} \
+            --amend $IMAGE_NAME:${CIRCLE_TAG:-latest}-arm64 \
+            --amend $IMAGE_NAME:${CIRCLE_TAG:-latest}-x86
+            echo "$GH_PASS" | docker login ghcr.io -u "$GH_USERNAME" --password-stdin
+            docker manifest push $IMAGE_NAME:${CIRCLE_TAG:-latest}
 workflows:
   main:
     jobs:
-      - build:
+      - build-arm64:
           filters:
             branches:
               only: master
             tags:
               only: /^\d+\.\d+\.\d+$/
-      - publish-latest:
+      - publish-latest-arm64:
           context:
             - gh-classic
           requires:
-            - build
+            - build-arm64
           filters:
             branches:
               only: master
             tags:
               only: /^\d+\.\d+\.\d+$/
-
+      - build-amd64:
+          filters:
+            branches:
+              only: master
+            tags:
+              only: /^\d+\.\d+\.\d+$/
+      - publish-latest-amd64:
+          context:
+            - gh-classic
+          requires:
+            - build-amd64
+          filters:
+            branches:
+              only: master
+            tags:
+              only: /^\d+\.\d+\.\d+$/
+      - publish-multiarch-image:
+          requires:
+            - publish-latest-arm64
+            - publish-latest-amd64
