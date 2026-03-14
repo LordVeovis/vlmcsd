@@ -90,7 +90,7 @@ jobs:
             docker manifest create \
             $IMAGE_NAME:${CIRCLE_TAG:-latest} \
             --amend $IMAGE_NAME:${CIRCLE_TAG:-latest}-arm64 \
-            --amend $IMAGE_NAME:${CIRCLE_TAG:-latest}-x86
+            --amend $IMAGE_NAME:${CIRCLE_TAG:-latest}-amd64
             docker manifest push $IMAGE_NAME:${CIRCLE_TAG:-latest}
 workflows:
   main:
